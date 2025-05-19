@@ -15,19 +15,10 @@
             label = "HOMEROW_MODS";
             #binding-cells = <2>;
             tapping-term-ms = <200>;
-            flavor = "hold-preferred";
+            flavor = "balanced";
             bindings = <&kp>, <&kp>;
 
             quick-tap-ms = <200>;
-        };
-    };
-
-    macros {
-        close_tab: close_tab {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&kp LG(W)>;
-            label = "CLOSE_TAB";
         };
     };
 
@@ -57,11 +48,11 @@
 
         silly-extended {
             bindings = <
-&trans  &trans  &trans  &trans  &trans  &trans  &trans                                      &trans  &trans            &trans  &trans     &trans             &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans  &trans                                      &trans  &trans            &trans  &trans     &trans             &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans      &trans  &trans  &trans  &kp LG(LA(LEFT))  &trans  &kp LG(W)  &kp LG(LA(RIGHT))  &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans                  &trans      &trans                  &trans            &trans  &trans     &trans             &trans  &trans
-&trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans      &trans  &trans  &trans                    &trans  &trans     &trans             &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans     &trans                                      &trans  &trans            &trans  &trans     &trans             &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &kp LG(T)  &trans                                      &trans  &trans            &trans  &trans     &trans             &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans     &trans  &trans  &trans      &trans  &trans  &trans  &kp LG(LA(LEFT))  &trans  &kp LG(W)  &kp LG(LA(RIGHT))  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans                     &trans      &trans                  &trans            &trans  &trans     &trans             &trans  &trans
+&trans  &trans  &trans  &trans  &trans             &trans  &trans  &trans      &trans  &trans  &trans                    &trans  &trans     &trans             &trans  &trans
             >;
         };
 
