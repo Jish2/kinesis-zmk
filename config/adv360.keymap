@@ -22,34 +22,53 @@
         };
     };
 
+    macros {
+        close_tab: close_tab {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LG(W)>;
+            label = "CLOSE_TAB";
+        };
+    };
+
     keymap {
         compatible = "zmk,keymap";
 
         default_layer {
             display-name = "Base";
             bindings = <
-&kp EQUAL  &kp N1          &kp N2          &kp N3              &kp N4            &kp N5  &tog 0                                                          &mo 3      &kp N6  &kp N7             &kp N8               &kp N9           &kp N0              &kp MINUS
+&kp EQUAL  &kp N1          &kp N2          &kp N3              &kp N4            &kp N5  &tog 0                                                          &mo 4      &kp N6  &kp N7             &kp N8               &kp N9           &kp N0              &kp MINUS
 &kp TAB    &kp Q           &kp W           &kp E               &kp R             &kp T   &none                                                           &none      &kp Y   &kp U              &kp I                &kp O            &kp P               &kp BSLH
 &lt 1 ESC  &hm LEFT_GUI A  &hm LEFT_ALT S  &hm LEFT_CONTROL D  &hm LEFT_SHIFT F  &kp G   &none     &kp LEFT_COMMAND  &kp LALT      &kp LGUI   &kp RCTRL  &none      &kp H   &hm RIGHT_SHIFT J  &hm RIGHT_CONTROL K  &hm RIGHT_ALT L  &hm RIGHT_GUI SEMI  &kp SQT
 &kp LSHFT  &kp Z           &kp X           &kp C               &kp V             &kp B                               &kp HOME      &kp PG_UP                        &kp N   &kp M              &kp COMMA            &kp DOT          &kp FSLH            &kp RSHFT
-&mo 2      &kp GRAVE       &none           &none               &kp LALT                  &kp BSPC  &kp LEFT_CONTROL  &kp END       &kp PG_DN  &kp ENTER  &kp SPACE          &none              &none                &none            &none               &mo 2
+&mo 3      &kp GRAVE       &none           &none               &kp LALT                  &kp BSPC  &kp LEFT_CONTROL  &kp END       &kp PG_DN  &kp ENTER  &kp SPACE          &none              &none                &none            &none               &mo 3
             >;
         };
 
         silly {
             bindings = <
-&trans  &trans  &trans  &trans  &trans        &trans  &trans                                      &trans  &trans            &trans             &trans                &trans                 &trans  &trans
-&trans  &trans  &trans  &trans  &trans        &trans  &trans                                      &trans  &kp PAGE_DOWN     &kp PAGE_UP        &kp LEFT_PARENTHESIS  &kp RIGHT_PARENTHESIS  &trans  &trans
-&trans  &trans  &trans  &trans  &trans        &trans  &trans  &trans  &trans      &trans  &trans  &trans  &kp LEFT          &kp DOWN           &kp UP                &kp RIGHT              &trans  &trans
-&trans  &trans  &trans  &trans  &trans        &trans                  &trans      &trans                  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp LEFT_BRACE        &kp RIGHT_BRACE        &trans  &trans
-&trans  &trans  &trans  &trans  &kp LA(LGUI)          &trans  &trans  &trans      &trans  &trans  &trans                    &trans             &trans                &trans                 &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans                                      &trans  &trans            &trans             &trans                &trans                 &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans                                      &trans  &kp PAGE_DOWN     &kp PAGE_UP        &kp LEFT_PARENTHESIS  &kp RIGHT_PARENTHESIS  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans      &trans  &trans  &trans  &kp LEFT          &kp DOWN           &kp UP                &kp RIGHT              &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans                  &trans      &trans                  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp LEFT_BRACE        &kp RIGHT_BRACE        &trans  &trans
+&trans  &trans  &trans  &trans  &tog 2          &trans  &trans  &trans      &trans  &trans  &trans                    &trans             &trans                &trans                 &trans  &trans
+            >;
+        };
+
+        silly-extended {
+            bindings = <
+&trans  &trans  &trans  &trans  &trans  &trans  &trans                                      &trans  &trans            &trans  &trans     &trans             &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans                                      &trans  &trans            &trans  &trans     &trans             &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans      &trans  &trans  &trans  &kp LG(LA(LEFT))  &trans  &kp LG(W)  &kp LG(LA(RIGHT))  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans                  &trans      &trans                  &trans            &trans  &trans     &trans             &trans  &trans
+&trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans      &trans  &trans  &trans                    &trans  &trans     &trans             &trans  &trans
             >;
         };
 
         fn {
             display-name = "Fn";
             bindings = <
-&kp F1  &kp F2  &kp F3  &kp F4  &kp F5  &kp F6  &tog 0                                      &mo 3   &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12
+&kp F1  &kp F2  &kp F3  &kp F4  &kp F5  &kp F6  &tog 0                                      &mo 4   &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12
 &trans  &trans  &trans  &trans  &trans  &trans  &none                                       &none   &trans  &trans  &trans  &trans   &trans   &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &none   &trans  &trans      &trans  &trans  &none   &trans  &trans  &trans  &trans   &trans   &trans
 &trans  &trans  &trans  &trans  &trans  &trans                  &trans      &trans                  &trans  &trans  &trans  &trans   &trans   &trans
