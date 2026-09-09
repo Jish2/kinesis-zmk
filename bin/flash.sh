@@ -205,20 +205,27 @@ fi
 COPY=(cp)
 [[ "$(uname)" == "Darwin" ]] && COPY=(cp -X)
 
+# Pin the fork explicitly for every gh call. Without -R / a literal repo,
+# some gh commands resolve the upstream (KinesisCorporation) repo when the
+# fork has an 'upstream' remote, and runs vanish (404s / empty listings).
+FORK_REPO=$(git remote get-url origin | sed -E 's#^(git@github\.com:|https://github\.com/)##; s#\.git$##')
+
 # Commit whose build we'll flash — HEAD normally, or @{u} if there are
 # unpushed commits the user chose not to push (only pushed commits get builds).
 FLASH_SHA=$(git rev-parse HEAD)
 SHORT=$(git rev-parse --short HEAD)
 
 # resolve_run_id — print the newest Actions run id for FLASH_SHA, or nothing.
+# Goes through the REST API: `gh run list --commit` lags for very fresh runs
+# (sometimes 60s+), which matters when the wizard runs right after a push.
 resolve_run_id() {
-  gh run list --commit "$FLASH_SHA" --limit 1 \
-    --json databaseId --jq 'if length > 0 then .[0].databaseId else "" end' 2>/dev/null || true
+  gh api "repos/$FORK_REPO/actions/runs?head_sha=$FLASH_SHA&per_page=1" \
+    --jq 'if .workflow_runs | length > 0 then .workflow_runs[0].id else "" end' 2>/dev/null || true
 }
 
 # run_field <id> <jq-expr> — pull fields for a run: status, conclusion, url.
 run_field() {
-  gh run view "$1" --json status,conclusion,url --jq "$2" 2>/dev/null || true
+  gh run view "$1" --repo "$FORK_REPO" --json status,conclusion,url --jq "$2" 2>/dev/null || true
 }
 
 # wait_and_flash <uf2-file> — watch removable-drive roots for a UF2 bootloader
@@ -308,7 +315,7 @@ done
 if [[ -z "$RUN_ID" ]]; then
   warn "no GitHub Actions run found for commit $SHORT."
   step "Push your keymap change first (a build triggers on every push), then re-run."
-  open_url "$(gh repo view --json url --jq '.url + "/actions"')"
+  open_url "https://github.com/$FORK_REPO/actions"
   exit 1
 fi
 say "Found run $RUN_ID for $SHORT."
@@ -317,7 +324,7 @@ STATUS=$(run_field "$RUN_ID" '.status')
 CONCLUSION=$(run_field "$RUN_ID" '.conclusion // ""')
 if [[ "$STATUS" == "completed" && "$CONCLUSION" == "success" ]]; then
   say "Build already finished — success. Skipping the wait."
-elif ! gh run watch "$RUN_ID" --exit-status --interval 20; then
+elif ! gh run watch "$RUN_ID" --repo "$FORK_REPO" --exit-status --interval 20; then
   warn "build failed for $SHORT."
   step "Fix the keymap error, push again (a new build triggers), then re-run this wizard."
   open_url "$(run_field "$RUN_ID" '.url')"
@@ -328,7 +335,7 @@ fi
 stage "Firmware — download & pick variant"
 for ARTIFACT in firmware-clique firmware-no-clique; do
   rm -rf "firmware/$ARTIFACT"
-  gh run download "$RUN_ID" -n "$ARTIFACT" -D "firmware/$ARTIFACT" >/dev/null 2>&1 \
+  gh run download "$RUN_ID" --repo "$FORK_REPO" -n "$ARTIFACT" -D "firmware/$ARTIFACT" >/dev/null 2>&1 \
     || { warn "couldn't download artifact '$ARTIFACT' from run $RUN_ID"; exit 1; }
 done
 say "Both variants downloaded."
