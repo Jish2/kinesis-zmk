@@ -155,3 +155,9 @@ Further support resources can be found on Kinesis.com:
 In the event of a hardware issue it may be necessary to open a support ticket directly with Kinesis as opposed to a GitHub issue in this repository.
 * https://kinesis-ergo.com/support/kb360pro/#ticket
 
+## Flashing the quick way
+
+Run `make flash` (or `bin/flash.sh` directly). The wizard waits for the GitHub Actions build of your current commit to pass, downloads the `firmware-clique`/`firmware-no-clique` artifacts, and walks you through flashing both halves — just do each step as you read it; the watcher detects the `ADV360PRO` bootloader drive and copies the matching `.uf2` the moment it appears, no confirmations needed. Your variant choice is remembered in `firmware/.flash.env` (override with `bin/flash.sh clique` or `bin/flash.sh no-clique`).
+
+Bootloader combos (stock keymap): left half = Mod+macro1, right half = Mod+macro3. `macro1`/`macro3` are the upper blank hotkeys in each half's inner column; the reset pinhole on the underside of each module also works.
+

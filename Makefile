@@ -9,7 +9,11 @@ SELINUX1 := :z
 SELINUX2 := ,z
 endif
 
-.PHONY: all left clean_firmware clean_image clean
+.PHONY: all left clean_firmware clean_image clean flash
+
+# Flash the latest cloud build of HEAD to both halves (interactive wizard).
+flash:
+	bin/flash.sh
 
 all:
 	$(shell bin/get_version_local.sh clique >> /dev/null)
