@@ -27,6 +27,26 @@
             #binding-cells = <1>;
             toggle-mode = "flip";
         };
+
+        // tap side: 1x tap = nothing, 2x tap = flip shift lock on/off
+        td_shift_tog: td_shift_toggle {
+            compatible = "zmk,behavior-tap-dance";
+            label = "TD_SHIFT_TOGGLE";
+            #binding-cells = <0>;
+            tapping-term-ms = <300>;
+            bindings = <&none>, <&toggle_shift LSHFT>;
+        };
+
+        // hold = regular shift, double tap = shift lock toggle
+        lsh: lshift_hold_toggle {
+            compatible = "zmk,behavior-hold-tap";
+            label = "LSHIFT_HOLD_TOGGLE";
+            #binding-cells = <1>;
+            tapping-term-ms = <200>;
+            quick-tap-ms = <0>;
+            flavor = "balanced";
+            bindings = <&kp>, <&td_shift_tog>;
+        };
     };
 
     keymap {
@@ -38,7 +58,7 @@
 &kp EQUAL            &kp N1          &kp N2          &kp N3              &kp N4            &kp N5  &tog 0                                                          &mo 4      &kp N6  &kp N7             &kp N8               &kp N9           &kp N0              &kp MINUS
 &kp TAB              &kp Q           &kp W           &kp E               &kp R             &kp T   &none                                                           &none      &kp Y   &kp U              &kp I                &kp O            &kp P               &kp BSLH
 &lt 1 ESC            &hm LEFT_GUI A  &hm LEFT_ALT S  &hm LEFT_CONTROL D  &hm LEFT_SHIFT F  &kp G   &none     &kp LEFT_COMMAND  &kp LALT      &kp LGUI   &kp RCTRL  &none      &kp H   &hm RIGHT_SHIFT J  &hm RIGHT_CONTROL K  &hm RIGHT_ALT L  &hm RIGHT_GUI SEMI  &kp SQT
-&toggle_shift LSHFT  &kp Z           &kp X           &kp C               &kp V             &kp B                               &kp HOME      &kp PG_UP                        &kp N   &kp M              &kp COMMA            &kp DOT          &kp FSLH            &kp RSHFT
+&lsh LSHFT            &kp Z           &kp X           &kp C               &kp V             &kp B                               &kp HOME      &kp PG_UP                        &kp N   &kp M              &kp COMMA            &kp DOT          &kp FSLH            &kp RSHFT
 &mo 3                &kp GRAVE       &none           &none               &mo 2                     &kp BSPC  &kp ENTER         &kp END       &kp PG_DN  &kp ENTER  &kp SPACE          &none              &none                &none            &none               &mo 3
             >;
         };
