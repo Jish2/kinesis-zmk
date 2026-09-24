@@ -194,15 +194,15 @@ ENV_FILE="$REPO_ROOT/firmware/.flash.env"
 
 # --local skips CI entirely and flashes docker-built uf2s from firmware/.
 # Optional positional arg forces the variant.
-# usage: bin/flash.sh [--local] [clique|no-clique]
+# usage: bin/flash.sh [--local] [clique|no-clique|debug]
 LOCAL=0
 CLI_VARIANT=""
 for arg in "$@"; do
   case "$arg" in
     --local) LOCAL=1 ;;
-    clique|no-clique) CLI_VARIANT="$arg" ;;
+    clique|no-clique|debug) CLI_VARIANT="$arg" ;;
     *)
-      echo "usage: bin/flash.sh [--local] [clique|no-clique]" >&2
+      echo "usage: bin/flash.sh [--local] [clique|no-clique|debug]" >&2
       exit 2
       ;;
   esac
@@ -219,7 +219,12 @@ fi
 case "$VARIANT" in
   clique)    F_SUFFIX="clique" ;;
   no-clique) F_SUFFIX="noclique" ;;
+  debug)     F_SUFFIX="debug" ;;
 esac
+if (( ! LOCAL )) && [[ "$VARIANT" == "debug" ]]; then
+  echo "error: 'debug' is a local-only variant — use: bin/flash.sh --local debug" >&2
+  exit 2
+fi
 
 TOTAL_STAGES=6
 if (( LOCAL )); then TOTAL_STAGES=5; fi # local mode: no cloud-build stage
@@ -356,11 +361,18 @@ if (( LOCAL )); then
       exit 1
     fi
   fi
-  [[ "$(_existing VARIANT || true)" == "$VARIANT" ]] || write_env VARIANT "$VARIANT"
+  if [[ "$VARIANT" != "debug" ]]; then
+    # don't make the one-off debug variant the remembered default
+    [[ "$(_existing VARIANT || true)" == "$VARIANT" ]] || write_env VARIANT "$VARIANT"
+  fi
   say "Variant: ${BOLD}$VARIANT${RESET} (local build)"
   say "Using newest local build:"
   ls -lh "$LEFT_UF2" "$RIGHT_UF2" | awk '{print "    " $5 "  " $9}'
   note "    filenames are <build time>-<commit>; Mod+V types the same stamp"
+  # The final stage should show the commit the uf2s were built from (what
+  # Mod+V types), which can differ from HEAD if anything was committed after
+  # the build.
+  SHORT=$(basename "$LEFT_UF2" | sed -E 's/^[0-9]+-([0-9a-fx]+)-left-.*$/\1/')
   [[ -z "$(git status --porcelain 2>/dev/null)" ]] || \
     warn "worktree has uncommitted changes — the newest local build may predate them"
   confirm "Flash these?" || exit 1

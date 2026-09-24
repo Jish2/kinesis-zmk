@@ -17,5 +17,8 @@ Flashing is interactive — the human must see the terminal and drive it.
 
 - `bin/build-local.sh` (Docker, no CI round-trip) is safe to run in
   background tasks.
+- `bin/build-local.sh debug` + `bin/keylog.sh` record raw key events and
+  hold-tap decisions from the keyboard over USB. Keylogs contain everything
+  typed — keep them local (gitignored) and delete them after analysis.
 - `bin/flash.sh --local` flashes the newest local build — same interactive
   wizard, so the flashing rules above apply.

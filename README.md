@@ -63,7 +63,13 @@ sudo apt-get install docker make
 1. Execute `make` (or `bin/build-local.sh`) to build firmware for both halves, or `make left` (or `bin/build-local.sh --left-only`) to only build firmware for the left hand side.
 2. Check the `firmware` directory for the latest firmware build. The first part of the filename is the timestamp when the firmware was built.
 
-`bin/build-local.sh` produces the same firmware the CI jobs produce, locally in Docker — no push or Actions wait needed. It defaults to the `clique` variant (left half with ZMK Studio, for the Kinesis web editor); pass `no-clique` for the plain variant. Flash the newest local build with `make flash-local` (or `bin/flash.sh --local`).
+`bin/build-local.sh` produces the same firmware the CI jobs produce, locally in Docker — no push or Actions wait needed. It defaults to the `clique` variant (left half with ZMK Studio, for the Kinesis web editor); pass `no-clique` for the plain variant, or `debug` for a USB-logging build (see below). Flash the newest local build with `make flash-local` (or `bin/flash.sh --local`).
+
+#### Logging key events
+
+`bin/build-local.sh debug` builds firmware with ZMK's `zmk-usb-logging` snippet at debug log level — every key event and home-row-mod hold-tap decision is written to a USB console with millisecond timestamps. Flash it with `bin/flash.sh --local debug`, then run `bin/keylog.sh` to capture everything to a timestamped file (Ctrl-C to stop). The Mod+V build stamp ends in `-DEBUG` so you can tell it apart at a glance; re-flash your normal variant when you're done.
+
+Note: the log records everything typed during the session — it's a keylogger on yourself. The files are gitignored; delete them after analysis.
 
 ### Cleanup
 

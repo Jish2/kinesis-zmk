@@ -1,3 +1,4 @@
 /firmware/*.uf2
 /firmware/firmware-*/
 /firmware/.flash.env
+/keylog-*.txt
