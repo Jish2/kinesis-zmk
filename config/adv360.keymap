@@ -49,6 +49,29 @@
         };
     };
 
+    // Fast F+; and F+/ chords. With flavor "balanced", the F home-row mod only
+    // resolves to LSHFT if F is held past tapping-term-ms (200) or the other
+    // key is released while F is still held. Releasing F first resolves the
+    // hold-tap as a tap and emits a literal "f;" / "f/" instead. These combos
+    // fire whenever F and ; (or /) are held together within timeout-ms and send
+    // the shifted character directly, regardless of press/release order.
+    // Key positions: 32 = F, 44 = ;, 58 = / (adv360.dtsi matrix transform).
+    combos {
+        compatible = "zmk,combos";
+
+        colon {
+            bindings = <&kp COLON>;
+            key-positions = <32 44>;
+            timeout-ms = <100>;
+        };
+
+        question {
+            bindings = <&kp QUESTION>;
+            key-positions = <32 58>;
+            timeout-ms = <100>;
+        };
+    };
+
     keymap {
         compatible = "zmk,keymap";
 
