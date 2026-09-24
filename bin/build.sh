@@ -6,12 +6,9 @@ PWD=$(pwd)
 TIMESTAMP="${TIMESTAMP:-$(date -u +"%Y%m%d%H%M")}"
 COMMIT="${COMMIT:-$(echo xxxxxx)}"
 
-# Variant mirrors the CI jobs in .github/workflows/build.yml, plus one
-# local-only flavor:
-#   clique    → left half with ZMK Studio over USB (Clique web editor)
+# Variant mirrors the two CI jobs in .github/workflows/build.yml:
+#   clique    → left half built with ZMK Studio over USB (Clique web editor)
 #   no-clique → plain left build, no studio
-#   debug     → no studio + USB console logging (zmk-usb-logging snippet,
-#               ZMK debug log level) — pair with bin/keylog.sh
 VARIANT="${VARIANT:-clique}"
 case "$VARIANT" in
     clique)
@@ -24,13 +21,8 @@ case "$VARIANT" in
         SNIPPET=""
         CONF=""
         ;;
-    debug)
-        SUFFIX="debug"
-        SNIPPET="-S zmk-usb-logging"
-        CONF="-DCONFIG_ZMK_LOG_LEVEL_DBG=y"
-        ;;
     *)
-        echo "VARIANT must be 'clique', 'no-clique' or 'debug', got '${VARIANT}'" >&2
+        echo "VARIANT must be 'clique' or 'no-clique', got '${VARIANT}'" >&2
         exit 2
         ;;
 esac

@@ -194,15 +194,15 @@ ENV_FILE="$REPO_ROOT/firmware/.flash.env"
 
 # --local skips CI entirely and flashes docker-built uf2s from firmware/.
 # Optional positional arg forces the variant.
-# usage: bin/flash.sh [--local] [clique|no-clique|debug]
+# usage: bin/flash.sh [--local] [clique|no-clique]
 LOCAL=0
 CLI_VARIANT=""
 for arg in "$@"; do
   case "$arg" in
     --local) LOCAL=1 ;;
-    clique|no-clique|debug) CLI_VARIANT="$arg" ;;
+    clique|no-clique) CLI_VARIANT="$arg" ;;
     *)
-      echo "usage: bin/flash.sh [--local] [clique|no-clique|debug]" >&2
+      echo "usage: bin/flash.sh [--local] [clique|no-clique]" >&2
       exit 2
       ;;
   esac
@@ -219,12 +219,7 @@ fi
 case "$VARIANT" in
   clique)    F_SUFFIX="clique" ;;
   no-clique) F_SUFFIX="noclique" ;;
-  debug)     F_SUFFIX="debug" ;;
 esac
-if (( ! LOCAL )) && [[ "$VARIANT" == "debug" ]]; then
-  echo "error: 'debug' is a local-only variant — use: bin/flash.sh --local debug" >&2
-  exit 2
-fi
 
 TOTAL_STAGES=6
 if (( LOCAL )); then TOTAL_STAGES=5; fi # local mode: no cloud-build stage
@@ -361,10 +356,7 @@ if (( LOCAL )); then
       exit 1
     fi
   fi
-  if [[ "$VARIANT" != "debug" ]]; then
-    # don't make the one-off debug variant the remembered default
-    [[ "$(_existing VARIANT || true)" == "$VARIANT" ]] || write_env VARIANT "$VARIANT"
-  fi
+  [[ "$(_existing VARIANT || true)" == "$VARIANT" ]] || write_env VARIANT "$VARIANT"
   say "Variant: ${BOLD}$VARIANT${RESET} (local build)"
   say "Using newest local build:"
   ls -lh "$LEFT_UF2" "$RIGHT_UF2" | awk '{print "    " $5 "  " $9}'

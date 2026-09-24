@@ -3,13 +3,11 @@
 # Build firmware locally in Docker — the same result as the GitHub Actions
 # jobs in .github/workflows/build.yml, without the push/CI round-trip.
 #
-# usage: bin/build-local.sh [clique|no-clique|debug] [--left-only]
+# usage: bin/build-local.sh [clique|no-clique] [--left-only]
 #
 #   clique    left half with ZMK Studio over USB (works with the Clique
 #             web editor) — same as the CI "Build (Clique)" job
 #   no-clique plain left build — same as the CI "Build (Legacy)" job
-#   debug     no studio + USB console logging (zmk-usb-logging snippet,
-#             ZMK debug log level) — capture with bin/keylog.sh
 #
 # Output: firmware/<timestamp>-<commit>-{left,right}-<variant>.uf2
 # Flash the newest local build with: bin/flash.sh --local
@@ -23,10 +21,10 @@ VARIANT="clique"
 LEFT_ONLY=false
 for arg in "$@"; do
   case "$arg" in
-    clique|no-clique|debug) VARIANT="$arg" ;;
+    clique|no-clique) VARIANT="$arg" ;;
     --left-only) LEFT_ONLY=true ;;
     *)
-      echo "usage: bin/build-local.sh [clique|no-clique|debug] [--left-only]" >&2
+      echo "usage: bin/build-local.sh [clique|no-clique] [--left-only]" >&2
       exit 2
       ;;
   esac
@@ -35,16 +33,14 @@ done
 case "$VARIANT" in
   clique) SUFFIX="clique" ;;
   no-clique) SUFFIX="noclique" ;;
-  debug) SUFFIX="debug" ;;
 esac
 
 DOCKER=$(command -v podman || command -v docker)
 TIMESTAMP=$(date -u +"%Y%m%d%H%M")
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo xxxxxx)
 
-# Version macro (typed by Mod+V): date-branch-commit[-variant], matching CI's
-# stamps. No arg → the stamp ends with "." exactly like the CI no-clique job;
-# "debug" stamps itself so logging firmware is easy to tell apart.
+# Version macro (typed by Mod+V): date-branch-commit[-clique], matching CI's
+# stamps. No arg → the stamp ends with "." exactly like the CI no-clique job.
 if [ "$VARIANT" = "no-clique" ]; then
   bin/get_version_local.sh >/dev/null
 else
