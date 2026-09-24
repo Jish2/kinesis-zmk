@@ -192,12 +192,37 @@ REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$REPO_ROOT"
 ENV_FILE="$REPO_ROOT/firmware/.flash.env"
 
-# Optional positional arg forces the variant: bin/flash.sh [clique|no-clique]
-CLI_VARIANT="${1:-}"
-if [[ -n "$CLI_VARIANT" && "$CLI_VARIANT" != "clique" && "$CLI_VARIANT" != "no-clique" ]]; then
-  echo "usage: bin/flash.sh [clique|no-clique]" >&2
-  exit 2
+# --local skips CI entirely and flashes docker-built uf2s from firmware/.
+# Optional positional arg forces the variant.
+# usage: bin/flash.sh [--local] [clique|no-clique]
+LOCAL=0
+CLI_VARIANT=""
+for arg in "$@"; do
+  case "$arg" in
+    --local) LOCAL=1 ;;
+    clique|no-clique) CLI_VARIANT="$arg" ;;
+    *)
+      echo "usage: bin/flash.sh [--local] [clique|no-clique]" >&2
+      exit 2
+      ;;
+  esac
+done
+
+# Variant: CLI arg wins, then the remembered choice, then clique default.
+# Local builds are named *-{left,right}-clique.uf2 / *-{left,right}-noclique.uf2.
+if [[ -n "$CLI_VARIANT" ]]; then
+  VARIANT="$CLI_VARIANT"
+else
+  VARIANT=$(_existing VARIANT || true)
+  [[ -n "$VARIANT" ]] || VARIANT="clique"
 fi
+case "$VARIANT" in
+  clique)    F_SUFFIX="clique" ;;
+  no-clique) F_SUFFIX="noclique" ;;
+esac
+
+TOTAL_STAGES=6
+if (( LOCAL )); then TOTAL_STAGES=5; fi # local mode: no cloud-build stage
 
 # cp -X on macOS skips extended attributes, avoiding the spurious
 # "could not copy extended attributes ... Device not configured" warning when
@@ -280,31 +305,66 @@ printf '\n%s%s  Kinesis Advantage 360 Pro — firmware flash%s\n' "$BOLD" "$BLUE
 printf '%s  %s stages%s\n\n' "$DIM" "$TOTAL_STAGES" "$RESET"
 say "Auto-copies each .uf2 the moment a bootloader drive appears."
 say "Ctrl-C and re-run any time."
+if (( LOCAL )); then
+  say "Local mode — flashing docker-built firmware from firmware/, no CI."
+fi
 
 # ── Stage 1: preflight ─────────────────────────────────────────────────────
-stage "Pre-flight — gh, git state"
-command -v gh >/dev/null 2>&1 || { warn "gh not installed — run: brew install gh"; exit 1; }
-gh auth status >/dev/null 2>&1 || { warn "gh not authenticated — run: gh auth login"; exit 1; }
+stage "Pre-flight — git state"
+if (( ! LOCAL )); then
+  command -v gh >/dev/null 2>&1 || { warn "gh not installed — run: brew install gh"; exit 1; }
+  gh auth status >/dev/null 2>&1 || { warn "gh not authenticated — run: gh auth login"; exit 1; }
+fi
 say "Repo: $REPO_ROOT"
 say "HEAD: $SHORT"
 
-AHEAD=0
-if git rev-parse --verify -q '@{u}' >/dev/null 2>&1; then
-  AHEAD=$(git rev-list --count '@{u}..HEAD')
-fi
-if (( AHEAD > 0 )); then
-  warn "$AHEAD unpushed commit(s) — the cloud build only triggers on push."
-  if confirm "Push now?"; then
-    git push
-    say "Pushed. The build will appear in a few seconds."
-  else
-    FLASH_SHA=$(git rev-parse '@{u}')
-    SHORT=$(git rev-parse --short "$FLASH_SHA")
-    note "Continuing anyway — we'll flash the last pushed build ($SHORT), not HEAD."
+if (( LOCAL )); then
+  say "Mode: local — flashing docker-built firmware, no CI needed."
+else
+  AHEAD=0
+  if git rev-parse --verify -q '@{u}' >/dev/null 2>&1; then
+    AHEAD=$(git rev-list --count '@{u}..HEAD')
+  fi
+  if (( AHEAD > 0 )); then
+    warn "$AHEAD unpushed commit(s) — the cloud build only triggers on push."
+    if confirm "Push now?"; then
+      git push
+      say "Pushed. The build will appear in a few seconds."
+    else
+      FLASH_SHA=$(git rev-parse '@{u}')
+      SHORT=$(git rev-parse --short "$FLASH_SHA")
+      note "Continuing anyway — we'll flash the last pushed build ($SHORT), not HEAD."
+    fi
   fi
 fi
 
-# ── Stage 2: locate and watch the build ────────────────────────────────────
+# ── Stage 2: locate the firmware ────────────────────────────────────────────
+if (( LOCAL )); then
+  stage "Local firmware — find newest build"
+  find_local_uf2s() {
+    LEFT_UF2=$(find firmware -maxdepth 1 -name "*-left-${F_SUFFIX}.uf2" 2>/dev/null | sort -r | head -n 1 || true)
+    RIGHT_UF2=$(find firmware -maxdepth 1 -name "*-right-${F_SUFFIX}.uf2" 2>/dev/null | sort -r | head -n 1 || true)
+  }
+  find_local_uf2s
+  if [[ ! -f "$LEFT_UF2" || ! -f "$RIGHT_UF2" ]]; then
+    warn "no local ${VARIANT} uf2 pair in firmware/ yet."
+    if confirm "Build one now with bin/build-local.sh ${VARIANT}?"; then
+      bin/build-local.sh "$VARIANT"
+      find_local_uf2s
+    else
+      step "Run: bin/build-local.sh ${VARIANT} — then re-run bin/flash.sh --local"
+      exit 1
+    fi
+  fi
+  [[ "$(_existing VARIANT || true)" == "$VARIANT" ]] || write_env VARIANT "$VARIANT"
+  say "Variant: ${BOLD}$VARIANT${RESET} (local build)"
+  say "Using newest local build:"
+  ls -lh "$LEFT_UF2" "$RIGHT_UF2" | awk '{print "    " $5 "  " $9}'
+  note "    filenames are <build time>-<commit>; Mod+V types the same stamp"
+  [[ -z "$(git status --porcelain 2>/dev/null)" ]] || \
+    warn "worktree has uncommitted changes — the newest local build may predate them"
+  confirm "Flash these?" || exit 1
+else
 stage "Cloud build — find & watch the run"
 RUN_ID=""
 for _ in $(seq 1 12); do
@@ -331,7 +391,6 @@ elif ! gh run watch "$RUN_ID" --repo "$FORK_REPO" --exit-status --interval 20; t
   exit 1
 fi
 
-# ── Stage 3: download artifacts, pick variant ──────────────────────────────
 stage "Firmware — download & pick variant"
 for ARTIFACT in firmware-clique firmware-no-clique; do
   rm -rf "firmware/$ARTIFACT"
@@ -340,14 +399,6 @@ for ARTIFACT in firmware-clique firmware-no-clique; do
 done
 say "Both variants downloaded."
 
-# Variant: CLI arg wins, then the remembered choice, then clique default.
-if [[ -n "$CLI_VARIANT" ]]; then
-  VARIANT="$CLI_VARIANT"
-else
-  VARIANT=$(_existing VARIANT || true)
-  [[ -n "$VARIANT" ]] || VARIANT="clique"
-fi
-[[ "$(_existing VARIANT || true)" == "$VARIANT" ]] || write_env VARIANT "$VARIANT"
 say "Variant: ${BOLD}$VARIANT${RESET} (clique = works with the Kinesis web editor)"
 note "    switch with: bin/flash.sh no-clique"
 
@@ -356,8 +407,9 @@ RIGHT_UF2=$(find "firmware/firmware-$VARIANT" -maxdepth 1 -name '*-right.uf2' 2>
 [[ -f "$LEFT_UF2" && -f "$RIGHT_UF2" ]] || { warn "uf2 files missing in firmware/firmware-$VARIANT/"; exit 1; }
 say "Using:"
 ls -lh "$LEFT_UF2" "$RIGHT_UF2" | awk '{print "    " $5 "  " $9}'
+fi
 
-# ── Stage 4: flash left half ───────────────────────────────────────────────
+# ── Flash LEFT half ────────────────────────────────────────────────────────
 stage "Flash LEFT half"
 say "Key refresher — the inner columns, top to bottom:"
 note "    LEFT half:   [kp]  [macro1] [macro2] [fn]"
@@ -375,7 +427,7 @@ done
 printf '  %s%s✓ LEFT half flashed%s\n' "$BOLD" "$GREEN" "$RESET"
 sleep 2
 
-# ── Stage 5: flash right half ──────────────────────────────────────────────
+# ── Flash RIGHT half ───────────────────────────────────────────────────────
 stage "Flash RIGHT half"
 step "1. Unplug the left half."
 step "2. Switch BOTH halves off."
@@ -391,7 +443,7 @@ done
 printf '  %s%s✓ RIGHT half flashed%s\n' "$BOLD" "$GREEN" "$RESET"
 sleep 2
 
-# ── Stage 6: final cycle & verify ──────────────────────────────────────────
+# ── Final cycle & verify ───────────────────────────────────────────────────
 stage "Done — power cycle & test"
 printf '  %s%s✓ Both halves flashed: %s (%s)%s\n\n' "$BOLD" "$GREEN" "$SHORT" "$VARIANT" "$RESET"
 step "1. Unplug the right half."

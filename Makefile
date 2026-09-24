@@ -1,43 +1,24 @@
 DOCKER := $(shell { command -v podman || command -v docker; })
-TIMESTAMP := $(shell date -u +"%Y%m%d%H%M")
-COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null)
-ifeq ($(shell uname),Darwin)
-SELINUX1 :=
-SELINUX2 :=
-else
-SELINUX1 := :z
-SELINUX2 := ,z
-endif
 
-.PHONY: all left clean_firmware clean_image clean flash
+.PHONY: all local left flash flash-local clean_firmware clean_image clean
 
-# Flash the latest cloud build of HEAD to both halves (interactive wizard).
+# Build both halves locally in Docker (clique variant) — no CI round-trip.
+# Delegates to bin/build-local.sh, which is also safe to run non-interactively.
+all local:
+	bin/build-local.sh clique
+
+# Build only the left half (clique variant).
+left:
+	bin/build-local.sh clique --left-only
+
+# Interactive flash wizard for the GitHub Actions build of the current commit.
 flash:
 	bin/flash.sh
 
-all:
-	$(shell bin/get_version_local.sh clique >> /dev/null)
-	$(DOCKER) build --tag zmk --file Dockerfile .
-	$(DOCKER) run --rm -it --name zmk \
-		-v $(PWD)/firmware:/app/firmware$(SELINUX1) \
-		-v $(PWD)/config:/app/config:ro$(SELINUX2) \
-		-e TIMESTAMP=$(TIMESTAMP) \
-		-e COMMIT=$(COMMIT) \
-		-e BUILD_RIGHT=true \
-		zmk
-	git checkout config/version.dtsi
-
-left:
-	$(shell bin/get_version_local.sh clique >> /dev/null)
-	$(DOCKER) build --tag zmk --file Dockerfile .
-	$(DOCKER) run --rm -it --name zmk \
-		-v $(PWD)/firmware:/app/firmware$(SELINUX1) \
-		-v $(PWD)/config:/app/config:ro$(SELINUX2) \
-		-e TIMESTAMP=$(TIMESTAMP) \
-		-e COMMIT=$(COMMIT) \
-		-e BUILD_RIGHT=false \
-		zmk
-	git checkout config/version.dtsi
+# Interactive flash wizard for the newest docker-built local firmware
+# (offers to build it first via bin/build-local.sh if none exists).
+flash-local:
+	bin/flash.sh --local
 
 clean_firmware:
 	rm -f firmware/*.uf2

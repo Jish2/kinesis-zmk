@@ -60,8 +60,10 @@ sudo apt-get install docker make
 
 ### Building the firmware
 
-1. Execute `make` to build firmware for both halves or `make left` to only build firmware for the left hand side.
+1. Execute `make` (or `bin/build-local.sh`) to build firmware for both halves, or `make left` (or `bin/build-local.sh --left-only`) to only build firmware for the left hand side.
 2. Check the `firmware` directory for the latest firmware build. The first part of the filename is the timestamp when the firmware was built.
+
+`bin/build-local.sh` produces the same firmware the CI jobs produce, locally in Docker — no push or Actions wait needed. It defaults to the `clique` variant (left half with ZMK Studio, for the Kinesis web editor); pass `no-clique` for the plain variant. Flash the newest local build with `make flash-local` (or `bin/flash.sh --local`).
 
 ### Cleanup
 
@@ -159,6 +161,8 @@ In the event of a hardware issue it may be necessary to open a support ticket di
 ## Flashing the quick way
 
 Run `make flash` (or `bin/flash.sh` directly). The wizard waits for the GitHub Actions build of your current commit to pass, downloads the `firmware-clique`/`firmware-no-clique` artifacts, and walks you through flashing both halves — just do each step as you read it; the watcher detects the `ADV360PRO` bootloader drive and copies the matching `.uf2` the moment it appears, no confirmations needed. Your variant choice is remembered in `firmware/.flash.env` (override with `bin/flash.sh clique` or `bin/flash.sh no-clique`).
+
+To skip CI entirely, run `make flash-local` (or `bin/flash.sh --local`): it flashes the newest docker-built firmware in `firmware/` and offers to build it first with `bin/build-local.sh` if none exists — same wizard, same bootloader-drive watcher, no push required. The remembered variant choice applies to both modes.
 
 Bootloader combos (stock keymap): left half = Mod+macro1, right half = Mod+macro3. `macro1`/`macro3` are the upper blank hotkeys in each half's inner column; the reset pinhole on the underside of each module also works.
 
